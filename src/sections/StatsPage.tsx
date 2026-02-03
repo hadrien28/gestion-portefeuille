@@ -492,7 +492,12 @@ export function StatsPage() {
                   fontSize={11}
                   width={70}
                 />
-                <Tooltip content={renderTooltip(formatMonthLabel)} />
+                <Tooltip
+                  content={renderTooltip(formatMonthLabel)}
+                  cursor={{ fill: 'transparent' }}
+                  allowEscapeViewBox={{ x: false, y: false }}
+                  wrapperStyle={{ outline: 'none' }}
+                />
                 <Legend />
                 <Area
                   type="monotone"
@@ -548,7 +553,12 @@ export function StatsPage() {
                   fontSize={11}
                   width={70}
                 />
-                <Tooltip content={renderTooltip(formatMonthLabel)} />
+                <Tooltip
+                  content={renderTooltip(formatMonthLabel)}
+                  cursor={{ fill: 'transparent' }}
+                  allowEscapeViewBox={{ x: false, y: false }}
+                  wrapperStyle={{ outline: 'none' }}
+                />
                 <Legend />
                 <Bar dataKey="pea" name="PEA" fill={PEA_COLOR} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                 <Bar dataKey="cto" name="CTO" fill={CTO_COLOR} radius={[6, 6, 0, 0]} isAnimationActive={false} />
