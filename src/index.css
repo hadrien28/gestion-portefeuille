@@ -1,0 +1,329 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.625rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Liquid Glass Design System */
+@layer components {
+  /* Glass Panel - Main container */
+  .glass-panel {
+    @apply backdrop-blur-xl bg-white/70 dark:bg-black/40;
+    @apply border border-white/20 dark:border-white/10;
+    @apply shadow-xl;
+  }
+
+  /* Glass Card */
+  .glass-card {
+    @apply backdrop-blur-lg bg-white/60 dark:bg-white/5;
+    @apply border border-white/30 dark:border-white/10;
+    @apply rounded-2xl;
+    @apply shadow-lg shadow-black/5 dark:shadow-black/20;
+    @apply transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply bg-white/70 dark:bg-white/10;
+    @apply shadow-xl shadow-black/10 dark:shadow-black/30;
+    @apply border-white/40 dark:border-white/15;
+  }
+
+  /* Glass Input */
+  .glass-input {
+    @apply backdrop-blur-md bg-white/50 dark:bg-white/5;
+    @apply border border-white/40 dark:border-white/10;
+    @apply rounded-xl;
+    @apply transition-all duration-200;
+  }
+
+  .glass-input:focus {
+    @apply bg-white/70 dark:bg-white/10;
+    @apply border-primary/50;
+    @apply ring-2 ring-primary/20;
+  }
+
+  /* Glass Button */
+  .glass-button {
+    @apply backdrop-blur-md bg-white/40 dark:bg-white/5;
+    @apply border border-white/30 dark:border-white/10;
+    @apply rounded-xl;
+    @apply transition-all duration-200;
+  }
+
+  .glass-button:hover {
+    @apply bg-white/60 dark:bg-white/10;
+    @apply border-white/50 dark:border-white/20;
+  }
+
+  /* Glass Dialog */
+  .glass-dialog {
+    @apply backdrop-blur-2xl bg-white/80 dark:bg-black/60;
+    @apply border border-white/30 dark:border-white/10;
+    @apply rounded-3xl;
+    @apply shadow-2xl;
+  }
+
+  /* Investment Card Animation */
+  .investment-card {
+    @apply transform transition-all duration-300;
+  }
+
+  .investment-card:hover {
+    @apply scale-[1.02];
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+}
+
+/* Animated Background Gradient */
+.animated-gradient {
+  background: linear-gradient(
+    -45deg,
+    hsl(var(--primary) / 0.1),
+    hsl(var(--secondary) / 0.1),
+    hsl(var(--accent) / 0.1),
+    hsl(var(--muted) / 0.1)
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Floating Animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse Glow */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Slide In Animation */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.5s ease-out forwards;
+}
+
+/* Stagger Children */
+.stagger-children > * {
+  opacity: 0;
+  animation: slide-in 0.5s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+
+/* Recharts Customization */
+.recharts-wrapper {
+  @apply text-foreground;
+}
+
+.recharts-tooltip-wrapper {
+  @apply z-50;
+}
+
+/* Selection Color */
+::selection {
+  @apply bg-primary/30;
+}
+
+/* Focus Visible */
+:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent Text Selection on UI Elements */
+button,
+[role="button"] {
+  @apply select-none;
+}
+
+/* iPhone Safe Area Support */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+  .glass-panel {
+    @apply backdrop-blur-xl bg-white/80 dark:bg-black/50;
+  }
+  
+  .glass-card {
+    @apply rounded-xl;
+  }
+  
+  .glass-dialog {
+    @apply rounded-2xl mx-4;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) {
+  .investment-card:hover {
+    transform: none;
+  }
+  
+  .glass-card:hover {
+    @apply bg-white/60 dark:bg-white/5;
+  }
+}
+
+/* Prevent horizontal scroll */
+body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better tap highlights on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Input zoom prevention on iPhone */
+input, select, textarea {
+  font-size: 16px;
+}
+
+/* Dialog scroll fix for iPhone */
+.glass-dialog {
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
