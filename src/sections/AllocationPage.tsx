@@ -49,13 +49,12 @@ export function AllocationPage() {
   const renderItemRow = (
     account: AccountType,
     item: AllocationItem,
-    accountItems: AllocationItem[],
-    accountAmount: number
+    groupItems: AllocationItem[],
+    groupAmount: number
   ) => {
-    const totalPercent = accountItems.reduce((sum, current) => sum + current.percent, 0);
-    const sumOther = totalPercent - item.percent;
+    const sumOther = groupItems.reduce((sum, current) => (current.id === item.id ? sum : sum + current.percent), 0);
     const maxPercent = Math.max(0, 100 - sumOther);
-    const itemAmount = (accountAmount * item.percent) / 100;
+    const itemAmount = (groupAmount * item.percent) / 100;
 
     const isConfirmed = Boolean(item.isConfirmed);
     const canConfirm = item.name.trim().length > 0;
@@ -65,8 +64,8 @@ export function AllocationPage() {
         key={item.id}
         className="rounded-2xl border border-white/30 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5"
       >
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_auto_auto_auto] lg:items-center">
-          <div className="space-y-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="flex-1 space-y-2">
             {isConfirmed ? (
               <div className="text-base font-semibold text-foreground break-words leading-snug">
                 {item.name || 'Sans nom'}
@@ -82,7 +81,7 @@ export function AllocationPage() {
             <div className="text-xs text-muted-foreground">Montant: {formatCurrency(itemAmount)}</div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:shrink-0">
             <Input
               type="number"
               min={0}
@@ -100,7 +99,7 @@ export function AllocationPage() {
             <span className="text-sm text-muted-foreground">%</span>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="flex items-center gap-2 sm:ml-auto">
             <Button
               variant="outline"
               size="icon"
@@ -112,9 +111,6 @@ export function AllocationPage() {
             >
               <Pencil className="w-4 h-4" />
             </Button>
-          </div>
-
-          <div className="lg:col-span-1">
             <Button
               variant="ghost"
               size="icon"
@@ -135,7 +131,7 @@ export function AllocationPage() {
               })
             }
             min={0}
-            max={100}
+            max={maxPercent}
             step={1}
             className="py-2"
           />
@@ -149,18 +145,16 @@ export function AllocationPage() {
     label: string,
     type: InvestmentType,
     items: AllocationItem[],
-    accountItems: AllocationItem[],
     accountAmount: number,
     accentClass: string
   ) => {
-    const groupPercent = items.reduce((sum, item) => sum + item.percent, 0);
-    const otherTotal = accountItems.reduce((sum, item) => (item.type === type ? sum : sum + item.percent), 0);
-    const maxGroupPercent = Math.max(0, 100 - otherTotal);
+    const groupPercent = plan.accounts[account].groupPercents[type];
+    const otherType: InvestmentType = type === 'action' ? 'etf' : 'action';
+    const otherPercent = plan.accounts[account].groupPercents[otherType];
+    const maxGroupPercent = Math.max(0, 100 - otherPercent);
     const groupAmount = (accountAmount * groupPercent) / 100;
-    const canAdjustGroup = items.length > 0;
 
     const handleGroupPercentChange = (value: number) => {
-      if (!canAdjustGroup) return;
       setGroupPercent(account, type, Math.min(maxGroupPercent, clampPercent(value)));
     };
 
@@ -172,7 +166,7 @@ export function AllocationPage() {
             <span className="font-semibold">{label}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/70 px-3 py-1.5 backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+            <div className="flex w-full items-center gap-2 rounded-xl border border-white/30 bg-white/70 px-3 py-1.5 backdrop-blur-md dark:border-white/10 dark:bg-white/5 sm:w-auto">
               <Input
                 type="number"
                 min={0}
@@ -180,7 +174,6 @@ export function AllocationPage() {
                 step={1}
                 value={groupPercent}
                 onChange={(event) => handleGroupPercentChange(Number(event.target.value))}
-                disabled={!canAdjustGroup}
                 className="h-7 w-16 rounded-none border-0 border-b border-border/60 bg-transparent px-0 shadow-none text-right text-sm focus-visible:ring-0 focus-visible:border-primary/60"
               />
               <span className="text-xs text-muted-foreground">%</span>
@@ -189,7 +182,7 @@ export function AllocationPage() {
             <Button
               variant="outline"
               size="sm"
-              className="glass-button rounded-xl"
+              className="glass-button rounded-xl w-full sm:w-auto"
               onClick={() => addItem(account, type)}
             >
               <Plus className="w-4 h-4" />
@@ -203,14 +196,13 @@ export function AllocationPage() {
           min={0}
           max={maxGroupPercent}
           step={1}
-          disabled={!canAdjustGroup}
           className="py-2"
         />
         {items.length === 0 ? (
           <div className="text-sm text-muted-foreground italic">Aucun élément pour l'instant.</div>
         ) : (
           <div className="space-y-3">
-            {items.map((item) => renderItemRow(account, item, accountItems, accountAmount))}
+            {items.map((item) => renderItemRow(account, item, items, groupAmount))}
           </div>
         )}
       </div>
@@ -226,9 +218,10 @@ export function AllocationPage() {
     icon: ReactNode
   ) => {
     const accountItems = plan.accounts[account].items;
+    const groupPercents = plan.accounts[account].groupPercents;
     const actions = accountItems.filter((item) => item.type === 'action');
     const etfs = accountItems.filter((item) => item.type === 'etf');
-    const totalPercent = accountItems.reduce((sum, item) => sum + item.percent, 0);
+    const totalPercent = groupPercents.action + groupPercents.etf;
     const remainingPercent = Math.max(0, 100 - totalPercent);
     const remainingAmount = (amount * remainingPercent) / 100;
 
@@ -249,8 +242,8 @@ export function AllocationPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {renderGroup(account, 'Actions', 'action', actions, accountItems, amount, 'bg-amber-500')}
-          {renderGroup(account, 'ETFs', 'etf', etfs, accountItems, amount, 'bg-purple-500')}
+          {renderGroup(account, 'Actions', 'action', actions, amount, 'bg-amber-500')}
+          {renderGroup(account, 'ETFs', 'etf', etfs, amount, 'bg-purple-500')}
 
           <div className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border/50 px-4 py-3">
             <span className="text-sm text-muted-foreground">Reste non alloué</span>
@@ -272,11 +265,12 @@ export function AllocationPage() {
     icon: ReactNode
   ) => {
     const items = plan.accounts[account].items;
+    const groupPercents = plan.accounts[account].groupPercents;
     const actions = items.filter((item) => item.type === 'action');
     const etfs = items.filter((item) => item.type === 'etf');
 
     const renderCategory = (label: string, list: AllocationItem[]) => {
-      const categoryPercent = list.reduce((sum, item) => sum + item.percent, 0);
+      const categoryPercent = label === 'Actions' ? groupPercents.action : groupPercents.etf;
       const categoryAmount = (amount * categoryPercent) / 100;
 
       return (
@@ -296,31 +290,33 @@ export function AllocationPage() {
           {list.length === 0 ? (
             <div className="text-sm text-muted-foreground italic">Aucun élément.</div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-white/30 bg-white/70 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
-              <div className="grid grid-cols-[minmax(0,2fr)_auto_auto] items-center bg-secondary/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <span>Nom</span>
-                <span className="text-right">Part</span>
-              </div>
-              <div className="divide-y divide-border/40">
-                {list.map((item) => {
-                  const itemAmount = (amount * item.percent) / 100;
-                  return (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-[minmax(0,2fr)_auto_auto] items-center px-4 py-3"
-                    >
-                      <span className="text-sm font-medium break-words leading-snug">
-                        {item.name || 'Sans nom'}
-                      </span>
-                      <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
-                        {item.percent}%
-                      </span>
-                      <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
-                        {formatCurrency(itemAmount)}
-                      </span>
-                    </div>
-                  );
-                })}
+            <div className="overflow-x-auto rounded-2xl border border-white/30 bg-white/70 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+              <div className="min-w-[320px]">
+                <div className="grid grid-cols-[minmax(0,2fr)_auto_auto] items-center bg-secondary/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span>Nom</span>
+                  <span className="text-right">Part</span>
+                </div>
+                <div className="divide-y divide-border/40">
+                  {list.map((item) => {
+                    const itemAmount = (categoryAmount * item.percent) / 100;
+                    return (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-[minmax(0,2fr)_auto_auto] items-center px-4 py-3"
+                      >
+                        <span className="text-sm font-medium break-words leading-snug">
+                          {item.name || 'Sans nom'}
+                        </span>
+                        <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
+                          {item.percent}%
+                        </span>
+                        <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
+                          {formatCurrency(itemAmount)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

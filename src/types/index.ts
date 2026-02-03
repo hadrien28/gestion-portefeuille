@@ -37,6 +37,10 @@ export interface AllocationItem {
 
 export interface AllocationAccount {
   items: AllocationItem[];
+  groupPercents: {
+    action: number;
+    etf: number;
+  };
 }
 
 export interface AllocationPlan {

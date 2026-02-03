@@ -7,8 +7,8 @@ const defaultPlan: AllocationPlan = {
   monthlyAmount: 500,
   peaPercent: 80,
   accounts: {
-    pea: { items: [] },
-    cto: { items: [] },
+    pea: { items: [], groupPercents: { action: 0, etf: 0 } },
+    cto: { items: [], groupPercents: { action: 0, etf: 0 } },
   },
 };
 
@@ -32,9 +32,76 @@ const normalizeItems = (items: unknown): AllocationItem[] => {
     .filter((item): item is AllocationItem => item !== null);
 };
 
+const normalizeGroupPercents = (value: unknown) => {
+  if (!value || typeof value !== 'object') {
+    return { action: 0, etf: 0 };
+  }
+  const record = value as Partial<Record<'action' | 'etf', number>>;
+  return {
+    action: clampPercent(typeof record.action === 'number' ? record.action : 0),
+    etf: clampPercent(typeof record.etf === 'number' ? record.etf : 0),
+  };
+};
+
+const normalizeLegacyGroupItems = (items: AllocationItem[], type: InvestmentType) => {
+  const groupItems = items.filter((item) => item.type === type);
+  const total = groupItems.reduce((sum, item) => sum + item.percent, 0);
+  if (total <= 0) {
+    return items.map((item) => (item.type === type ? { ...item, percent: 0 } : item));
+  }
+
+  const raw = groupItems.map((item) => ({
+    id: item.id,
+    value: (item.percent / total) * 100,
+  }));
+  const floors = raw.map((entry) => Math.floor(entry.value));
+  let remainder = 100 - floors.reduce((sum, value) => sum + value, 0);
+  const order = raw
+    .map((entry, index) => ({ index, frac: entry.value - floors[index] }))
+    .sort((a, b) => b.frac - a.frac);
+
+  const percentMap = new Map<string, number>();
+  raw.forEach((entry, index) => {
+    percentMap.set(entry.id, floors[index]);
+  });
+
+  for (const entry of order) {
+    if (remainder <= 0) break;
+    const id = raw[entry.index].id;
+    percentMap.set(id, (percentMap.get(id) ?? 0) + 1);
+    remainder -= 1;
+  }
+
+  return items.map((item) =>
+    item.type === type ? { ...item, percent: percentMap.get(item.id) ?? item.percent } : item
+  );
+};
+
 const normalizePlan = (value: unknown): AllocationPlan => {
   if (!value || typeof value !== 'object') return defaultPlan;
   const record = value as Partial<AllocationPlan>;
+  const normalizeAccount = (account?: { items?: unknown; groupPercents?: unknown }) => {
+    const items = normalizeItems(account?.items);
+    const hasGroups =
+      account?.groupPercents &&
+      typeof (account.groupPercents as { action?: number }).action === 'number' &&
+      typeof (account.groupPercents as { etf?: number }).etf === 'number';
+    const groupPercents = hasGroups
+      ? normalizeGroupPercents(account?.groupPercents)
+      : {
+          action: clampPercent(items.filter((item) => item.type === 'action').reduce((sum, item) => sum + item.percent, 0)),
+          etf: clampPercent(items.filter((item) => item.type === 'etf').reduce((sum, item) => sum + item.percent, 0)),
+        };
+
+    if (hasGroups) {
+      return { items, groupPercents };
+    }
+
+    let migrated = normalizeLegacyGroupItems(items, 'action');
+    migrated = normalizeLegacyGroupItems(migrated, 'etf');
+    return { items: migrated, groupPercents };
+  };
+
   return {
     monthlyAmount: clampAmount(
       typeof record.monthlyAmount === 'number' ? record.monthlyAmount : defaultPlan.monthlyAmount
@@ -43,8 +110,8 @@ const normalizePlan = (value: unknown): AllocationPlan => {
       typeof record.peaPercent === 'number' ? record.peaPercent : defaultPlan.peaPercent
     ),
     accounts: {
-      pea: { items: normalizeItems(record.accounts?.pea?.items) },
-      cto: { items: normalizeItems(record.accounts?.cto?.items) },
+      pea: normalizeAccount(record.accounts?.pea),
+      cto: normalizeAccount(record.accounts?.cto),
     },
   };
 };
@@ -94,7 +161,19 @@ export function useAllocationPlan() {
       accounts: {
         ...prev.accounts,
         [account]: {
+          ...prev.accounts[account],
           items: [newItem, ...prev.accounts[account].items],
+          groupPercents: (() => {
+            const current = prev.accounts[account].groupPercents[type] ?? 0;
+            if (current > 0) return prev.accounts[account].groupPercents;
+            const otherType: InvestmentType = type === 'action' ? 'etf' : 'action';
+            const otherPercent = prev.accounts[account].groupPercents[otherType] ?? 0;
+            const nextPercent = Math.max(0, 100 - otherPercent);
+            return {
+              ...prev.accounts[account].groupPercents,
+              [type]: nextPercent,
+            };
+          })(),
         },
       },
     }));
@@ -106,7 +185,12 @@ export function useAllocationPlan() {
     (account: AccountType, itemId: string, updates: Partial<AllocationItem>) => {
       setPlan((prev) => {
         const items = prev.accounts[account].items;
-        const sumOther = items.reduce((sum, item) => (item.id === itemId ? sum : sum + item.percent), 0);
+        const current = items.find((item) => item.id === itemId);
+        const currentType = current?.type ?? updates.type ?? 'action';
+        const sumOther = items.reduce(
+          (sum, item) => (item.id === itemId || item.type !== currentType ? sum : sum + item.percent),
+          0
+        );
         const maxPercent = Math.max(0, 100 - sumOther);
 
         const nextItems = items.map((item) => {
@@ -130,7 +214,10 @@ export function useAllocationPlan() {
           ...prev,
           accounts: {
             ...prev.accounts,
-            [account]: { items: nextItems },
+            [account]: {
+              ...prev.accounts[account],
+              items: nextItems,
+            },
           },
         };
       });
@@ -140,59 +227,21 @@ export function useAllocationPlan() {
 
   const setGroupPercent = useCallback((account: AccountType, type: InvestmentType, percent: number) => {
     setPlan((prev) => {
-      const items = prev.accounts[account].items;
-      const groupItems = items.filter((item) => item.type === type);
-      if (groupItems.length === 0) return prev;
-
-      const otherTotal = items.reduce((sum, item) => (item.type === type ? sum : sum + item.percent), 0);
-      const maxPercent = Math.max(0, 100 - otherTotal);
-      const targetPercent = Math.min(maxPercent, Math.max(0, Math.round(percent)));
-
-      const currentTotal = groupItems.reduce((sum, item) => sum + item.percent, 0);
-      let nextItems = items;
-
-      if (currentTotal <= 0) {
-        const base = Math.floor(targetPercent / groupItems.length);
-        let remainder = targetPercent - base * groupItems.length;
-        nextItems = items.map((item) => {
-          if (item.type !== type) return item;
-          const extra = remainder > 0 ? 1 : 0;
-          remainder = Math.max(0, remainder - extra);
-          return { ...item, percent: base + extra };
-        });
-      } else {
-        const raw = groupItems.map((item) => ({
-          id: item.id,
-          value: (item.percent * targetPercent) / currentTotal,
-        }));
-        const floors = raw.map((entry) => Math.floor(entry.value));
-        let remainder = targetPercent - floors.reduce((sum, value) => sum + value, 0);
-        const order = raw
-          .map((entry, index) => ({ index, frac: entry.value - floors[index] }))
-          .sort((a, b) => b.frac - a.frac);
-
-        const percentMap = new Map<string, number>();
-        raw.forEach((entry, index) => {
-          percentMap.set(entry.id, floors[index]);
-        });
-
-        for (const entry of order) {
-          if (remainder <= 0) break;
-          const id = raw[entry.index].id;
-          percentMap.set(id, (percentMap.get(id) ?? 0) + 1);
-          remainder -= 1;
-        }
-
-        nextItems = items.map((item) =>
-          item.type === type ? { ...item, percent: percentMap.get(item.id) ?? item.percent } : item
-        );
-      }
-
+      const otherType: InvestmentType = type === 'action' ? 'etf' : 'action';
+      const otherPercent = prev.accounts[account].groupPercents[otherType] ?? 0;
+      const maxPercent = Math.max(0, 100 - otherPercent);
+      const targetPercent = Math.min(maxPercent, clampPercent(percent));
       return {
         ...prev,
         accounts: {
           ...prev.accounts,
-          [account]: { items: nextItems },
+          [account]: {
+            ...prev.accounts[account],
+            groupPercents: {
+              ...prev.accounts[account].groupPercents,
+              [type]: targetPercent,
+            },
+          },
         },
       };
     });
@@ -204,6 +253,7 @@ export function useAllocationPlan() {
       accounts: {
         ...prev.accounts,
         [account]: {
+          ...prev.accounts[account],
           items: prev.accounts[account].items.filter((item) => item.id !== itemId),
         },
       },
