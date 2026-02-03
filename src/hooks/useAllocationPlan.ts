@@ -26,9 +26,10 @@ const normalizeItems = (items: unknown): AllocationItem[] => {
       const type = record.type === 'etf' ? 'etf' : 'action';
       const percent = clampPercent(typeof record.percent === 'number' ? record.percent : 0);
       const isConfirmed = typeof record.isConfirmed === 'boolean' ? record.isConfirmed : false;
-      return { id, name, type, percent, isConfirmed } satisfies AllocationItem;
+      const normalized: AllocationItem = { id, name, type, percent, isConfirmed };
+      return normalized;
     })
-    .filter((item): item is AllocationItem => Boolean(item));
+    .filter((item): item is AllocationItem => item !== null);
 };
 
 const normalizePlan = (value: unknown): AllocationPlan => {
