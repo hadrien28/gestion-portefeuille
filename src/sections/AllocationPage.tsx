@@ -25,7 +25,17 @@ export function AllocationPage() {
     []
   );
 
+  const percentFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat('fr-FR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }),
+    []
+  );
+
   const formatCurrency = (value: number) => currencyFormatter.format(value);
+  const formatPercent = (value: number) => percentFormatter.format(value);
 
   const monthlyAmount = plan.monthlyAmount;
   const peaPercent = plan.peaPercent;
@@ -299,8 +309,7 @@ export function AllocationPage() {
                 <div className="divide-y divide-border/40">
                   {list.map((item) => {
                     const itemAmount = (categoryAmount * item.percent) / 100;
-                    const totalPercent = monthlyAmount > 0 ? Math.round((itemAmount / monthlyAmount) * 100) : 0;
-                    const totalPercent = Math.round((categoryPercent * item.percent) / 100);
+                    const totalPercent = monthlyAmount > 0 ? (itemAmount / monthlyAmount) * 100 : 0;
                     return (
                       <div
                         key={item.id}
@@ -311,7 +320,7 @@ export function AllocationPage() {
                             {item.name || 'Sans nom'}
                           </span>
                           <span className="rounded-full border border-border/60 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                            {totalPercent}%
+                            {formatPercent(totalPercent)}%
                           </span>
                         </div>
                         <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
