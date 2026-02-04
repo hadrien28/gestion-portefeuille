@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { Investment, InvestmentType, AccountType } from '@/types';
 import { useInvestments } from '@/hooks/useInvestments';
+import { useGoals } from '@/hooks/useGoals';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface InvestmentFormProps {
@@ -240,9 +241,9 @@ export function PortfolioPage() {
     addInvestment,
     updateInvestment,
     deleteInvestment,
-    exportToJSON,
     importFromJSON,
   } = useInvestments();
+  const { goals, updateGoals } = useGoals();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
@@ -268,15 +269,55 @@ export function PortfolioPage() {
     }
   };
 
+  const exportBackup = () => {
+    const dataStr = JSON.stringify(
+      {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        investments,
+        goals,
+      },
+      null,
+      2
+    );
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `investtrack_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target?.result as string;
-        if (importFromJSON(content)) {
-          alert('Import réussi !');
-        } else {
+        try {
+          const parsed = JSON.parse(content);
+          let didImport = false;
+          if (Array.isArray(parsed)) {
+            didImport = importFromJSON(content);
+          } else if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.investments)) {
+              didImport = importFromJSON(JSON.stringify(parsed.investments)) || didImport;
+            }
+            if (parsed.goals && typeof parsed.goals === 'object') {
+              updateGoals(parsed.goals);
+              didImport = true;
+            }
+          }
+          if (didImport) {
+            alert('Import réussi !');
+          } else {
+            alert('Erreur lors de l\'import');
+          }
+        } catch (error) {
+          console.error('Failed to import backup:', error);
           alert('Erreur lors de l\'import');
         }
       };
@@ -396,7 +437,7 @@ export function PortfolioPage() {
               </span>
             </Button>
           </label>
-          <Button variant="outline" onClick={exportToJSON} className="glass-button rounded-xl">
+          <Button variant="outline" onClick={exportBackup} className="glass-button rounded-xl">
             <Download className="w-4 h-4 mr-2" />
             Exporter
           </Button>
