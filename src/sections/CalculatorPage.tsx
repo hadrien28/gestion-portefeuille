@@ -88,6 +88,20 @@ export function CalculatorPage() {
     setCalcWaitingForNew(false);
   };
 
+  const handleCalcBackspace = () => {
+    if (calcWaitingForNew) {
+      setCalcDisplay('0');
+      setCalcWaitingForNew(false);
+      return;
+    }
+
+    setCalcDisplay((prev) => {
+      if (prev.length <= 1) return '0';
+      if (prev.length === 2 && prev.startsWith('-')) return '0';
+      return prev.slice(0, -1);
+    });
+  };
+
   const handleCalcToggleSign = () => {
     if (calcDisplay === '0') return;
     setCalcDisplay((prev) => (prev.startsWith('-') ? prev.slice(1) : `-${prev}`));
@@ -140,6 +154,68 @@ export function CalculatorPage() {
     setCalcOperator(null);
     setCalcWaitingForNew(true);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const { key } = event;
+
+      if (key >= '0' && key <= '9') {
+        event.preventDefault();
+        handleCalcDigit(key);
+        return;
+      }
+
+      if (key === '.' || key === ',') {
+        event.preventDefault();
+        handleCalcDecimal();
+        return;
+      }
+
+      if (key === '+' || key === '-' || key === '*' || key === '/') {
+        event.preventDefault();
+        const operator = key === '*' ? '×' : key === '/' ? '÷' : key;
+        handleCalcOperator(operator);
+        return;
+      }
+
+      if (key === 'Backspace' || key === 'Delete') {
+        event.preventDefault();
+        handleCalcBackspace();
+        return;
+      }
+
+      if (key === 'Enter' || key === '=') {
+        event.preventDefault();
+        handleCalcEquals();
+        return;
+      }
+
+      if (key === 'Escape') {
+        event.preventDefault();
+        handleCalcClear();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    handleCalcBackspace,
+    handleCalcClear,
+    handleCalcDecimal,
+    handleCalcDigit,
+    handleCalcEquals,
+    handleCalcOperator,
+  ]);
 
   return (
     <div className="space-y-6 pb-24">
@@ -314,28 +390,29 @@ export function CalculatorPage() {
 
             <div className="grid grid-cols-4 gap-3">
               <Button variant="secondary" onClick={handleCalcClear} className="h-12">AC</Button>
+              <Button variant="secondary" onClick={handleCalcBackspace} className="h-12">DEL</Button>
               <Button variant="secondary" onClick={handleCalcToggleSign} className="h-12">±</Button>
               <Button variant="secondary" onClick={handleCalcPercent} className="h-12">%</Button>
-              <Button onClick={() => handleCalcOperator('÷')} className="h-12">÷</Button>
 
               <Button variant="outline" onClick={() => handleCalcDigit('7')} className="h-12">7</Button>
               <Button variant="outline" onClick={() => handleCalcDigit('8')} className="h-12">8</Button>
               <Button variant="outline" onClick={() => handleCalcDigit('9')} className="h-12">9</Button>
-              <Button onClick={() => handleCalcOperator('×')} className="h-12">×</Button>
+              <Button onClick={() => handleCalcOperator('÷')} className="h-12">÷</Button>
 
               <Button variant="outline" onClick={() => handleCalcDigit('4')} className="h-12">4</Button>
               <Button variant="outline" onClick={() => handleCalcDigit('5')} className="h-12">5</Button>
               <Button variant="outline" onClick={() => handleCalcDigit('6')} className="h-12">6</Button>
-              <Button onClick={() => handleCalcOperator('-')} className="h-12">-</Button>
+              <Button onClick={() => handleCalcOperator('×')} className="h-12">×</Button>
 
               <Button variant="outline" onClick={() => handleCalcDigit('1')} className="h-12">1</Button>
               <Button variant="outline" onClick={() => handleCalcDigit('2')} className="h-12">2</Button>
               <Button variant="outline" onClick={() => handleCalcDigit('3')} className="h-12">3</Button>
-              <Button onClick={() => handleCalcOperator('+')} className="h-12">+</Button>
+              <Button onClick={() => handleCalcOperator('-')} className="h-12">-</Button>
 
               <Button variant="outline" onClick={() => handleCalcDigit('0')} className="h-12 col-span-2">0</Button>
               <Button variant="outline" onClick={handleCalcDecimal} className="h-12">.</Button>
-              <Button className="h-12" onClick={handleCalcEquals}>=</Button>
+              <Button onClick={() => handleCalcOperator('+')} className="h-12">+</Button>
+              <Button className="h-12 col-span-4" onClick={handleCalcEquals}>=</Button>
             </div>
           </CardContent>
         </Card>
