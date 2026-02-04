@@ -260,6 +260,10 @@ export function useAllocationPlan() {
     }));
   }, []);
 
+  const importPlan = useCallback((value: unknown) => {
+    setPlan(normalizePlan(value));
+  }, []);
+
   return {
     plan,
     isLoaded,
@@ -269,5 +273,6 @@ export function useAllocationPlan() {
     updateItem,
     removeItem,
     setGroupPercent,
+    importPlan,
   };
 }
