@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation } from '@/sections/Navigation';
 import { PortfolioPage } from '@/sections/PortfolioPage';
@@ -6,7 +7,7 @@ import { StatsPage } from '@/sections/StatsPage';
 import { CalculatorPage } from '@/sections/CalculatorPage';
 import { AllocationPage } from '@/sections/AllocationPage';
 import { useTheme } from '@/hooks/useTheme';
-import { Target, Calendar, Wallet, TrendingDown } from 'lucide-react';
+import { Target, Calendar, Wallet, TrendingDown, Download, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,7 @@ import { useInvestments } from '@/hooks/useInvestments';
 type Page = 'portfolio' | 'allocation' | 'stats' | 'calculator';
 
 function GoalsDialog() {
-  const { goals, updateGoal } = useGoals();
+  const { goals, updateGoal, exportToJSON, importFromJSON } = useGoals();
   const { getGrandTotal, getTotalByAccount } = useInvestments();
   
   const totalPEA = getTotalByAccount('pea');
@@ -43,6 +44,22 @@ function GoalsDialog() {
   );
   const formatCurrency = (amount: number) => currencyFormatter.format(amount);
 
+  const handleImport = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        const content = readerEvent.target?.result as string;
+        if (importFromJSON(content)) {
+          alert('Objectifs importés avec succès.');
+        } else {
+          alert('Impossible d\'importer ce fichier.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   return (
     <DialogContent className="glass-dialog sm:max-w-md rounded-3xl border-0 max-h-[90vh] overflow-y-auto">
       <DialogHeader>
@@ -54,6 +71,27 @@ function GoalsDialog() {
         </DialogTitle>
       </DialogHeader>
       <div className="space-y-6 pt-4">
+        <div className="flex flex-wrap gap-2">
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+            id="import-goals-file"
+          />
+          <label htmlFor="import-goals-file">
+            <Button variant="outline" className="glass-button rounded-xl" asChild>
+              <span>
+                <Upload className="w-4 h-4 mr-2" />
+                Importer
+              </span>
+            </Button>
+          </label>
+          <Button variant="outline" onClick={exportToJSON} className="glass-button rounded-xl">
+            <Download className="w-4 h-4 mr-2" />
+            Exporter
+          </Button>
+        </div>
         <div className="space-y-3">
           <Label className="flex items-center gap-2 text-sm font-medium">
             <Calendar className="w-4 h-4 text-primary" />
