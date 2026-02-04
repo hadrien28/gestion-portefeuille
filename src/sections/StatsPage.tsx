@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import {
   BarChart,
   Bar,
@@ -15,7 +16,18 @@ import {
   AreaChart,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, PieChart as PieChartIcon, BarChart3, Calendar, Target, Wallet, TrendingDown } from 'lucide-react';
+import {
+  TrendingUp,
+  PieChart as PieChartIcon,
+  BarChart3,
+  Calendar,
+  Target,
+  Wallet,
+  TrendingDown,
+  ChevronDown,
+  Download,
+  Upload,
+} from 'lucide-react';
 import { useInvestments } from '@/hooks/useInvestments';
 import { useGoals } from '@/hooks/useGoals';
 import { Progress } from '@/components/ui/progress';
@@ -23,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // Colors for charts
 const PEA_COLOR = '#10b981';
@@ -36,7 +49,8 @@ export function StatsPage() {
     investments,
   } = useInvestments();
 
-  const { goals, updateGoal } = useGoals();
+  const { goals, updateGoal, exportToJSON, importFromJSON } = useGoals();
+  const [monthlyTotalsOpen, setMonthlyTotalsOpen] = useState(true);
 
   const monthlyData = useMemo(() => getMonthlyData(), [getMonthlyData]);
 
@@ -50,6 +64,22 @@ export function StatsPage() {
     []
   );
   const formatCurrency = (amount: number) => currencyFormatter.format(amount);
+
+  const handleGoalsImport = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        const content = readerEvent.target?.result as string;
+        if (importFromJSON(content)) {
+          alert('Objectifs importés avec succès.');
+        } else {
+          alert('Impossible d\'importer ce fichier.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
 
   const formatMonthLabel = (value: string | number | undefined) => {
     if (value === undefined || value === null) return '';
@@ -267,6 +297,27 @@ export function StatsPage() {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-6 pt-4">
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleGoalsImport}
+                  className="hidden"
+                  id="import-goals-file-stats"
+                />
+                <label htmlFor="import-goals-file-stats">
+                  <Button variant="outline" className="glass-button rounded-xl" asChild>
+                    <span>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Importer
+                    </span>
+                  </Button>
+                </label>
+                <Button variant="outline" onClick={exportToJSON} className="glass-button rounded-xl">
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter
+                </Button>
+              </div>
               <div className="space-y-3">
                 <Label className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
@@ -570,29 +621,39 @@ export function StatsPage() {
 
       {/* Monthly Totals */}
       <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Totaux mensuels
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {monthlyTotals.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Aucune donnée disponible</div>
-          ) : (
-            <div className="space-y-3">
-              {monthlyTotals.map((item) => (
-                <div
-                  key={item.month}
-                  className="flex items-center justify-between rounded-2xl border border-white/30 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5"
-                >
-                  <span className="text-sm font-semibold">{formatMonthLabel(item.month)}</span>
-                  <span className="text-sm font-semibold">{formatCurrency(item.amount)}</span>
+        <Collapsible open={monthlyTotalsOpen} onOpenChange={setMonthlyTotalsOpen}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Totaux mensuels
+            </CardTitle>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                {monthlyTotalsOpen ? 'Réduire' : 'Dérouler'}
+                <ChevronDown className={`h-4 w-4 transition-transform ${monthlyTotalsOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
+              {monthlyTotals.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Aucune donnée disponible</div>
+              ) : (
+                <div className="space-y-3">
+                  {monthlyTotals.map((item) => (
+                    <div
+                      key={item.month}
+                      className="flex items-center justify-between rounded-2xl border border-white/30 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5"
+                    >
+                      <span className="text-sm font-semibold">{formatMonthLabel(item.month)}</span>
+                      <span className="text-sm font-semibold">{formatCurrency(item.amount)}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       {/* Distribution Charts */}
