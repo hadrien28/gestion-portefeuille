@@ -292,30 +292,32 @@ export function AllocationPage() {
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-white/30 bg-white/70 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
               <div className="min-w-[320px]">
-                <div className="grid grid-cols-[minmax(0,2fr)_auto_auto] items-center bg-secondary/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="grid grid-cols-[minmax(0,2fr)_auto] items-center bg-secondary/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <span>Nom</span>
-                  <span className="text-right">Part</span>
+                  <span className="text-right">Montant</span>
                 </div>
                 <div className="divide-y divide-border/40">
                   {list.map((item) => {
                     const itemAmount = (categoryAmount * item.percent) / 100;
                     const totalPercent = monthlyAmount > 0 ? Math.round((itemAmount / monthlyAmount) * 100) : 0;
+                    const accountPercent = amount > 0 ? Math.round((itemAmount / amount) * 100) : 0;
+                    const accountLabel = account === 'pea' ? 'PEA' : 'CTO';
                     return (
                       <div
                         key={item.id}
-                        className="grid grid-cols-[minmax(0,2fr)_auto_auto] items-center px-4 py-3"
+                        className="grid grid-cols-[minmax(0,2fr)_auto] items-center px-4 py-3"
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-medium break-words leading-snug">
                             {item.name || 'Sans nom'}
                           </span>
                           <span className="rounded-full border border-border/60 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                            {totalPercent}%
+                            {totalPercent}% du total
+                          </span>
+                          <span className="rounded-full border border-border/60 bg-secondary/60 px-2 py-0.5 text-xs font-semibold text-foreground">
+                            {accountPercent}% {accountLabel}
                           </span>
                         </div>
-                        <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
-                          {item.percent}%
-                        </span>
                         <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
                           {formatCurrency(itemAmount)}
                         </span>
