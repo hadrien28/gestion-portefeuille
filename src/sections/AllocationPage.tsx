@@ -299,14 +299,20 @@ export function AllocationPage() {
                 <div className="divide-y divide-border/40">
                   {list.map((item) => {
                     const itemAmount = (categoryAmount * item.percent) / 100;
+                    const totalPercent = Math.round((categoryPercent * item.percent) / 100);
                     return (
                       <div
                         key={item.id}
                         className="grid grid-cols-[minmax(0,2fr)_auto_auto] items-center px-4 py-3"
                       >
-                        <span className="text-sm font-medium break-words leading-snug">
-                          {item.name || 'Sans nom'}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium break-words leading-snug">
+                            {item.name || 'Sans nom'}
+                          </span>
+                          <span className="rounded-full border border-border/60 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                            {totalPercent}%
+                          </span>
+                        </div>
                         <span className="justify-self-end rounded-full border border-border/60 bg-secondary/60 px-2.5 py-1 text-xs font-semibold text-foreground">
                           {item.percent}%
                         </span>
