@@ -299,6 +299,7 @@ export function AllocationPage() {
                 <div className="divide-y divide-border/40">
                   {list.map((item) => {
                     const itemAmount = (categoryAmount * item.percent) / 100;
+                    const totalPercent = monthlyAmount > 0 ? Math.round((itemAmount / monthlyAmount) * 100) : 0;
                     const totalPercent = Math.round((categoryPercent * item.percent) / 100);
                     return (
                       <div
