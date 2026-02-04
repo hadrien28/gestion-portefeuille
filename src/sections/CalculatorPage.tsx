@@ -17,6 +17,10 @@ export function CalculatorPage() {
   const [percentage, setPercentage] = useState<number>(80);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [calcDisplay, setCalcDisplay] = useState('0');
+  const [calcAccumulator, setCalcAccumulator] = useState<number | null>(null);
+  const [calcOperator, setCalcOperator] = useState<string | null>(null);
+  const [calcWaitingForNew, setCalcWaitingForNew] = useState(false);
 
   // Quick calculations history - can be used for future feature
   // const [history, setHistory] = useState<CalculationResult[]>([]);
@@ -55,6 +59,88 @@ export function CalculatorPage() {
   );
   const formatCurrency = (value: number) => currencyFormatter.format(value);
 
+  const handleCalcDigit = (digit: string) => {
+    if (calcWaitingForNew) {
+      setCalcDisplay(digit);
+      setCalcWaitingForNew(false);
+      return;
+    }
+
+    setCalcDisplay((prev) => (prev === '0' ? digit : `${prev}${digit}`));
+  };
+
+  const handleCalcDecimal = () => {
+    if (calcWaitingForNew) {
+      setCalcDisplay('0.');
+      setCalcWaitingForNew(false);
+      return;
+    }
+
+    if (!calcDisplay.includes('.')) {
+      setCalcDisplay((prev) => `${prev}.`);
+    }
+  };
+
+  const handleCalcClear = () => {
+    setCalcDisplay('0');
+    setCalcAccumulator(null);
+    setCalcOperator(null);
+    setCalcWaitingForNew(false);
+  };
+
+  const handleCalcToggleSign = () => {
+    if (calcDisplay === '0') return;
+    setCalcDisplay((prev) => (prev.startsWith('-') ? prev.slice(1) : `-${prev}`));
+  };
+
+  const handleCalcPercent = () => {
+    const currentValue = parseFloat(calcDisplay);
+    if (Number.isNaN(currentValue)) return;
+    setCalcDisplay((currentValue / 100).toString());
+  };
+
+  const performCalcOperation = (current: number, next: number, operator: string) => {
+    switch (operator) {
+      case '+':
+        return current + next;
+      case '-':
+        return current - next;
+      case '×':
+        return current * next;
+      case '÷':
+        return next === 0 ? 0 : current / next;
+      default:
+        return next;
+    }
+  };
+
+  const handleCalcOperator = (nextOperator: string) => {
+    const nextValue = parseFloat(calcDisplay);
+    if (Number.isNaN(nextValue)) return;
+
+    if (calcAccumulator === null) {
+      setCalcAccumulator(nextValue);
+    } else if (calcOperator) {
+      const resultValue = performCalcOperation(calcAccumulator, nextValue, calcOperator);
+      setCalcAccumulator(resultValue);
+      setCalcDisplay(resultValue.toString());
+    }
+
+    setCalcOperator(nextOperator);
+    setCalcWaitingForNew(true);
+  };
+
+  const handleCalcEquals = () => {
+    const nextValue = parseFloat(calcDisplay);
+    if (Number.isNaN(nextValue) || calcAccumulator === null || !calcOperator) return;
+
+    const resultValue = performCalcOperation(calcAccumulator, nextValue, calcOperator);
+    setCalcDisplay(resultValue.toString());
+    setCalcAccumulator(null);
+    setCalcOperator(null);
+    setCalcWaitingForNew(true);
+  };
+
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
@@ -67,148 +153,193 @@ export function CalculatorPage() {
         </p>
       </div>
 
-      {/* Main Calculator */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="w-5 h-5" />
-            Calculateur de pourcentage
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Amount Input */}
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-lg">Montant total</Label>
-            <div className="relative">
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Entrez un montant (ex: 1000)"
-                className="glass-input text-lg h-14 pl-4"
+      {/* Main Calculator + Calculator */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Calculateur de pourcentage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Amount Input */}
+            <div className="space-y-2">
+              <Label htmlFor="amount" className="text-lg">Montant total</Label>
+              <div className="relative">
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Entrez un montant (ex: 1000)"
+                  className="glass-input text-lg h-14 pl-4"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  €
+                </span>
+              </div>
+            </div>
+
+            {/* Percentage Slider */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-lg flex items-center gap-2">
+                  <Percent className="w-4 h-4" />
+                  Pourcentage
+                </Label>
+                <span className="text-2xl font-bold text-primary">{percentage}%</span>
+              </div>
+              <Slider
+                value={[percentage]}
+                onValueChange={(value) => setPercentage(value[0])}
+                min={0}
+                max={100}
+                step={1}
+                className="py-4"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                €
-              </span>
-            </div>
-          </div>
-
-          {/* Percentage Slider */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-lg flex items-center gap-2">
-                <Percent className="w-4 h-4" />
-                Pourcentage
-              </Label>
-              <span className="text-2xl font-bold text-primary">{percentage}%</span>
-            </div>
-            <Slider
-              value={[percentage]}
-              onValueChange={(value) => setPercentage(value[0])}
-              min={0}
-              max={100}
-              step={1}
-              className="py-4"
-            />
-            <div className="flex flex-wrap gap-2">
-              {quickPercentages.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPercentage(p)}
-                  className={`
-                    px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200
-                    ${percentage === p
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }
-                  `}
-                >
-                  {p}%
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Result */}
-          {result && (
-            <div className="space-y-4 pt-4 border-t border-border">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Main Result */}
-                <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <TrendingUp className="w-4 h-4" />
-                        Résultat ({percentage}%)
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleCopy(result.result)}
-                      >
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    <div className="text-3xl font-bold text-primary">
-                      {formatCurrency(result.result)}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Remaining */}
-                <Card className="bg-secondary/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <TrendingDown className="w-4 h-4" />
-                        Reste ({100 - percentage}%)
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleCopy(result.remaining)}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="text-3xl font-bold">
-                      {formatCurrency(result.remaining)}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Visual Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>0%</span>
-                  <span>50%</span>
-                  <span>100%</span>
-                </div>
-                <div className="h-4 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-300"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-primary font-medium">
-                    {formatCurrency(result.result)} ({percentage}%)
-                  </span>
-                  <span className="text-muted-foreground">
-                    {formatCurrency(result.remaining)} ({100 - percentage}%)
-                  </span>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {quickPercentages.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPercentage(p)}
+                    className={`
+                      px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                      ${percentage === p
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }
+                    `}
+                  >
+                    {p}%
+                  </button>
+                ))}
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Result */}
+            {result && (
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Main Result */}
+                  <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <TrendingUp className="w-4 h-4" />
+                          Résultat ({percentage}%)
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleCopy(result.result)}
+                        >
+                          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      <div className="text-3xl font-bold text-primary">
+                        {formatCurrency(result.result)}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Remaining */}
+                  <Card className="bg-secondary/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <TrendingDown className="w-4 h-4" />
+                          Reste ({100 - percentage}%)
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleCopy(result.remaining)}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="text-3xl font-bold">
+                        {formatCurrency(result.remaining)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Visual Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                  <div className="h-4 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-300"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-primary font-medium">
+                      {formatCurrency(result.result)} ({percentage}%)
+                    </span>
+                    <span className="text-muted-foreground">
+                      {formatCurrency(result.remaining)} ({100 - percentage}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Calculatrice
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-2xl border border-border/60 bg-secondary/30 px-4 py-6 text-right">
+              <div className="text-sm text-muted-foreground">Affichage</div>
+              <div className="text-3xl font-bold tracking-tight text-foreground truncate">
+                {calcDisplay}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3">
+              <Button variant="secondary" onClick={handleCalcClear} className="h-12">AC</Button>
+              <Button variant="secondary" onClick={handleCalcToggleSign} className="h-12">±</Button>
+              <Button variant="secondary" onClick={handleCalcPercent} className="h-12">%</Button>
+              <Button onClick={() => handleCalcOperator('÷')} className="h-12">÷</Button>
+
+              <Button variant="outline" onClick={() => handleCalcDigit('7')} className="h-12">7</Button>
+              <Button variant="outline" onClick={() => handleCalcDigit('8')} className="h-12">8</Button>
+              <Button variant="outline" onClick={() => handleCalcDigit('9')} className="h-12">9</Button>
+              <Button onClick={() => handleCalcOperator('×')} className="h-12">×</Button>
+
+              <Button variant="outline" onClick={() => handleCalcDigit('4')} className="h-12">4</Button>
+              <Button variant="outline" onClick={() => handleCalcDigit('5')} className="h-12">5</Button>
+              <Button variant="outline" onClick={() => handleCalcDigit('6')} className="h-12">6</Button>
+              <Button onClick={() => handleCalcOperator('-')} className="h-12">-</Button>
+
+              <Button variant="outline" onClick={() => handleCalcDigit('1')} className="h-12">1</Button>
+              <Button variant="outline" onClick={() => handleCalcDigit('2')} className="h-12">2</Button>
+              <Button variant="outline" onClick={() => handleCalcDigit('3')} className="h-12">3</Button>
+              <Button onClick={() => handleCalcOperator('+')} className="h-12">+</Button>
+
+              <Button variant="outline" onClick={() => handleCalcDigit('0')} className="h-12 col-span-2">0</Button>
+              <Button variant="outline" onClick={handleCalcDecimal} className="h-12">.</Button>
+              <Button className="h-12" onClick={handleCalcEquals}>=</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Reference Table */}
       <Card className="glass-card">
