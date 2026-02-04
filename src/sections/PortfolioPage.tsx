@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import type { Investment, InvestmentType, AccountType } from '@/types';
 import { useInvestments } from '@/hooks/useInvestments';
 import { useGoals } from '@/hooks/useGoals';
+import { useAllocationPlan } from '@/hooks/useAllocationPlan';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface InvestmentFormProps {
@@ -244,6 +245,7 @@ export function PortfolioPage() {
     importFromJSON,
   } = useInvestments();
   const { goals, updateGoals } = useGoals();
+  const { plan, importPlan } = useAllocationPlan();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
@@ -276,6 +278,7 @@ export function PortfolioPage() {
         exportedAt: new Date().toISOString(),
         investments,
         goals,
+        allocationPlan: plan,
       },
       null,
       2
@@ -308,6 +311,10 @@ export function PortfolioPage() {
             }
             if (parsed.goals && typeof parsed.goals === 'object') {
               updateGoals(parsed.goals);
+              didImport = true;
+            }
+            if (parsed.allocationPlan && typeof parsed.allocationPlan === 'object') {
+              importPlan(parsed.allocationPlan);
               didImport = true;
             }
           }
